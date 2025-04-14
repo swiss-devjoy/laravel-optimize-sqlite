@@ -44,6 +44,7 @@ This is the contents of the published config file:
 
 ```php
 return [
+    // add, remove or modify SQLite settings to optimize performance. all settings are PRAGMA statements, like "PRAGMA journal_mode = WAL;"
     'general' => [
         'journal_mode' => 'WAL',
         'auto_vacuum' => 'incremental',
@@ -67,6 +68,8 @@ return [
 ```
 
 You can set general settings for all sqlite connections, and override them for specific connections.
+If you want to remove a general setting, just remove the config line from the config file.
+If you want to add a new setting, just add it to the config file.
 
 ## Important notes
 
@@ -105,7 +108,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [Dimitri König](https://showcaseful.com/dimitrikoenig)
+- [Dimitri König](https://github.com/dimitri-koenig)
 - [All Contributors](../../contributors)
 
 ## License

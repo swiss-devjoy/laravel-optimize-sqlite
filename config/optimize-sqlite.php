@@ -1,6 +1,7 @@
 <?php
 
 return [
+    // add, remove or modify SQLite settings to optimize performance. all settings are PRAGMA statements, like "PRAGMA journal_mode = WAL;"
     'general' => [
         'journal_mode' => 'WAL',
         'auto_vacuum' => 'incremental',
