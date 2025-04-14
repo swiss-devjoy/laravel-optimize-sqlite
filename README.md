@@ -105,7 +105,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [Dimitri König](https://github.com/dimitri-koenig)
+- [Dimitri König](https://showcaseful.com/dimitrikoenig)
 - [All Contributors](../../contributors)
 
 ## License
