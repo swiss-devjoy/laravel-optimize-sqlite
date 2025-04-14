@@ -1,75 +1,95 @@
-# :package_description
+# Optimize your SQLite database for production in Laravel
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/swiss-devjoy/laravel-optimize-sqlite.svg?style=flat-square)](https://packagist.org/packages/swiss-devjoy/laravel-optimize-sqlite)
+[![Total Downloads](https://img.shields.io/packagist/dt/swiss-devjoy/laravel-optimize-sqlite.svg?style=flat-square)](https://packagist.org/packages/swiss-devjoy/laravel-optimize-sqlite)
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+> This package is already used in production in multiple projects.
+> Still, if you want to use this package, **always** backup your database before requiring it through Composer.
 
-## Support us
+This package optimizes your SQLite database for production in Laravel. The settings are applied as soon as any sqlite database connection is established, so you can use them in your application right away.
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
+The current settings are:
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+```
+ ┌───────────────────────────┬─────────────────────┬
+ │ Setting                   │ Value               │
+ ├───────────────────────────┼─────────────────────┼
+ │ PRAGMA auto_vacuum        │ incremental         │
+ │ PRAGMA journal_mode       │ WAL                 │
+ │ PRAGMA page_size          │ 32768 (32 KB)       │
+ │ PRAGMA busy_timeout       │ 5000 (5 seconds)    │
+ │ PRAGMA cache_size         │ -20000              │ 
+ │ PRAGMA foreign_keys       │ ON                  │
+ │ PRAGMA mmap_size          │ 134217728 (128 MB)  │
+ │ PRAGMA temp_store         │ MEMORY              │
+ │ PRAGMA synchronous        │ NORMAL              │
+ └───────────────────────────┴─────────────────────┘
+ ```
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
-```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+composer require swiss-devjoy/laravel-optimize-sqlite
 ```
 
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-config"
+php artisan vendor:publish --tag="laravel-optimize-sqlite-config"
 ```
 
 This is the contents of the published config file:
 
 ```php
 return [
+    'general' => [
+        'journal_mode' => 'WAL',
+        'auto_vacuum' => 'incremental',
+        'page_size' => 32768, // 32 KB
+        'busy_timeout' => 5000, // 5 seconds
+        'cache_size' => -20000,
+        'foreign_keys' => 'ON',
+        'mmap_size' => 134217728, // 128 MB
+        'temp_store' => 'MEMORY',
+        'synchronous' => 'NORMAL',
+    ],
+
+    // You can override the general settings for specific database connections, defined in config/database.php
+    'databases' => [
+        'example_connection' => [
+            'busy_timeout' => 10000, // override general settings and set 10 seconds
+            'temp_store' => null, // unset temp_store from general settings
+        ],
+    ],
 ];
 ```
 
-Optionally, you can publish the views using
+You can set general settings for all sqlite connections, and override them for specific connections.
 
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
-```
+## Important notes
 
-## Usage
+- There is a known issue with databases already in WAL mode and running php artisan migrate:fresh which will throw an error, see https://github.com/laravel/framework/discussions/53044
+  My current alternative is to run a custom composer command (`composer.json`) which refreshes the whole app:
+  ```
+    "scripts": {
+        "dev-migrate": [
+            "Composer\\Config::disableProcessTimeout",
+            "rm -f database/*.sqlite",
+            "touch database/database.sqlite",
+            "@php artisan migrate --seed --ansi",
+            "@php artisan cache:clear"
+        ]
+    },
+  ```
+- Laravel allows already to set some `PRAGMA` settings in config/database.php which will override the settings in this package. You might want to set those settings to `null` and use this config as sole single source of truth for sqlite database settings.
+- I noticed that running multiple PRAGMA statements in a single query (e.g. `PRAGMA journal_mode=WAL; PRAGMA auto_vacuum=incremental;`) does not work as expected. The settings are not applied. This is why I decided to run each setting in a separate query.
 
-```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
-```
+## Inspiration
 
-## Testing
-
-```bash
-composer test
-```
+The general ideas are from Nuno Maduro's package https://github.com/nunomaduro/laravel-optimize-database.
+For more information about possible settings you can look into the SQLite documentation: https://www.sqlite.org/pragma.html
 
 ## Changelog
 
@@ -85,7 +105,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Dimitri König](https://github.com/dimitri-koenig)
 - [All Contributors](../../contributors)
 
 ## License
