@@ -12,7 +12,14 @@
         {
             "name": "Dimitri König",
             "email": "dimitri@devjoy.ch",
+            "homepage": "https://www.devjoy.ch",
             "role": "Developer"
+        }
+    ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/swiss-devjoy"
         }
     ],
     "require": {
